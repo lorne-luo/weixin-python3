@@ -1,17 +1,4 @@
-# -*- coding: utf-8 -*-
-
-
 __all__ = ("Map", "WeixinError")
-
-
-try:
-    unicode = unicode
-except NameError:
-    # python 3
-    basestring = (str, bytes)
-else:
-    # python 2
-    bytes = str
 
 
 class WeixinError(Exception):
@@ -26,6 +13,7 @@ class Map(dict):
     Example:
     m = Map({'first_name': 'Eduardo'}, last_name='Pool', age=24, sports=['Soccer'])
     """
+
     def __init__(self, *args, **kwargs):
         super(Map, self).__init__(*args, **kwargs)
         for arg in args:

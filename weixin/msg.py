@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
-
-
-from __future__ import unicode_literals
-
-import time
 import hashlib
-
+import time
 from datetime import datetime
 
 from .base import WeixinError
@@ -22,8 +16,48 @@ except Exception:
 
 from lxml import etree
 
-
 __all__ = ("WeixinMsgError", "WeixinMsg")
+
+
+def reply(username=None, type='text', sender=None, **kwargs):
+    if not username:
+        raise RuntimeError("username is missing")
+    sender = sender or sender
+    if not sender:
+        raise RuntimeError('WEIXIN_SENDER or sender argument is missing')
+
+    if type == 'text':
+        content = kwargs.get('content', '')
+        return text_reply(username, sender, content)
+
+    if type == 'music':
+        values = {}
+        for k in ('title', 'description', 'music_url', 'hq_music_url'):
+            values[k] = kwargs[k]
+        return music_reply(username, sender, **values)
+
+    if type == 'news':
+        items = kwargs['articles']
+        return news_reply(username, sender, *items)
+
+    if type == 'customer_service':
+        service_account = kwargs['service_account']
+        return transfer_customer_service_reply(username, sender,
+                                               service_account)
+
+    if type == 'image':
+        media_id = kwargs.get('media_id')
+        return image_reply(username, sender, media_id)
+
+    if type == 'voice':
+        media_id = kwargs.get('media_id')
+        return voice_reply(username, sender, media_id)
+
+    if type == 'video':
+        values = {}
+        for k in ('media_id', 'title', 'description'):
+            values[k] = kwargs[k]
+        return video_reply(username, sender, **values)
 
 
 class WeixinMsgError(WeixinError):
@@ -140,46 +174,6 @@ class WeixinMsg(object):
     def parse_invalid_type(self, raw):
         return {}
 
-    def reply(self, username=None, type='text', sender=None, **kwargs):
-        if not username:
-            raise RuntimeError("username is missing")
-        sender = sender or self.sender
-        if not sender:
-            raise RuntimeError('WEIXIN_SENDER or sender argument is missing')
-
-        if type == 'text':
-            content = kwargs.get('content', '')
-            return text_reply(username, sender, content)
-
-        if type == 'music':
-            values = {}
-            for k in ('title', 'description', 'music_url', 'hq_music_url'):
-                values[k] = kwargs[k]
-            return music_reply(username, sender, **values)
-
-        if type == 'news':
-            items = kwargs['articles']
-            return news_reply(username, sender, *items)
-
-        if type == 'customer_service':
-            service_account = kwargs['service_account']
-            return transfer_customer_service_reply(username, sender,
-                                                   service_account)
-
-        if type == 'image':
-            media_id = kwargs.get('media_id')
-            return image_reply(username, sender, media_id)
-
-        if type == 'voice':
-            media_id = kwargs.get('media_id')
-            return voice_reply(username, sender, media_id)
-
-        if type == 'video':
-            values = {}
-            for k in ('media_id', 'title', 'description'):
-                values[k] = kwargs[k]
-            return video_reply(username, sender, **values)
-
     def register(self, type, key=None, func=None):
         if func:
             key = '*' if not key else key
@@ -191,6 +185,7 @@ class WeixinMsg(object):
         def wrapper(func):
             self.register(type, key, func)
             return func
+
         return wrapper
 
     @property
@@ -258,20 +253,21 @@ class WeixinMsg(object):
                     text = func(**ret)
 
                 content = ''
-                if isinstance(text, basestring):
+                if isinstance(text, str):
                     if text:
-                        content = self.reply(
+                        content = reply(
                             username=ret['sender'],
                             sender=ret['receiver'],
-                            content=text,
+                            content=text
                         )
                 elif isinstance(text, dict):
                     text.setdefault('username', ret['sender'])
                     text.setdefault('sender', ret['receiver'])
-                    content = self.reply(**text)
+                    content = reply(**text)
 
                 return HttpResponse(content, content_type='text/xml; charset=utf-8')
             return HttpResponseNotAllowed(['GET', 'POST'])
+
         return run
 
     def view_func(self):
@@ -315,9 +311,9 @@ class WeixinMsg(object):
             text = func(**ret)
 
         content = ''
-        if isinstance(text, basestring):
+        if isinstance(text, str):
             if text:
-                content = self.reply(
+                content = reply(
                     username=ret['sender'],
                     sender=ret['receiver'],
                     content=text,
@@ -325,7 +321,7 @@ class WeixinMsg(object):
         elif isinstance(text, dict):
             text.setdefault('username', ret['sender'])
             text.setdefault('sender', ret['receiver'])
-            content = self.reply(**text)
+            content = reply(**text)
 
         return Response(content, content_type='text/xml; charset=utf-8')
 
@@ -387,10 +383,9 @@ def transfer_customer_service_reply(username, sender, service_account):
         '%(transfer_info)s</xml>')
     transfer_info = ''
     if service_account:
-        transfer_info = (
-            '<TransInfo>'
-            '<KfAccount>![CDATA[%s]]</KfAccount>'
-            '</TransInfo>') % service_account
+        transfer_info = ('<TransInfo>'
+                         '<KfAccount>![CDATA[%s]]</KfAccount>'
+                         '</TransInfo>') % service_account
 
     dct = {
         'shared': _shared_reply(username, sender,

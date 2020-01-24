@@ -1,13 +1,8 @@
-# -*- coding: utf-8 -*-
-
-
-from __future__ import unicode_literals
-
 import json
+
 import requests
 
 from .base import Map, WeixinError
-
 
 __all__ = ("WeixinLoginError", "WeixinLogin")
 

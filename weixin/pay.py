@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-
-
-from __future__ import unicode_literals
-
-import time
-import string
-import random
 import hashlib
+import random
+import string
+import time
+
 import requests
 
 from .base import Map, WeixinError
@@ -18,9 +14,7 @@ except Exception:
 
 from lxml import etree
 
-
 __all__ = ("WeixinPayError", "WeixinPay")
-
 
 FAIL = "FAIL"
 SUCCESS = "SUCCESS"
